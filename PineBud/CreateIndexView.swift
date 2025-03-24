@@ -9,12 +9,18 @@ struct CreateIndexView: View {
     
     @State private var indexName = ""
     @State private var dimension = 3072
-    @State private var metric = "cosine"
+    @State private var metric: String
     @State private var isCreating = false
     @State private var errorMessage: String?
     @State private var showAdvancedOptions = false
     
     let availableMetrics = ["cosine", "euclidean", "dotproduct"]
+    
+    init(onIndexCreated: @escaping (String?) -> Void) {
+        self.onIndexCreated = onIndexCreated
+        // Initialize with a default value that is guaranteed to be in the availableMetrics array
+        _metric = State(initialValue: "cosine")
+    }
     
     var body: some View {
         NavigationView {
@@ -30,6 +36,7 @@ struct CreateIndexView: View {
                                 Text(metricName.capitalized).tag(metricName)
                             }
                         }
+                        .id("metric-picker")  // Add stable ID to picker
                         .pickerStyle(DefaultPickerStyle())
                         
                         Stepper("Dimension: \(dimension)", value: $dimension, in: 1...4096, step: 64)

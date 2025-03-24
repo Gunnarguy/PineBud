@@ -13,8 +13,7 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             // Documents Tab
             NavigationView {
-                DocumentsView()
-                    .navigationTitle("Documents")
+                DocumentsContainerView()
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button(action: {
@@ -70,6 +69,10 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSettingsSheet) {
             SettingsView()
+                .environmentObject(settingsManager)
+                .environmentObject(apiManager)
+                .environmentObject(documentManager)
+                .environmentObject(searchManager)
         }
         .alert(item: $apiManager.currentError) { error in
             Alert(
@@ -77,6 +80,13 @@ struct ContentView: View {
                 message: Text(error.message),
                 dismissButton: .default(Text("OK"))
             )
+        }
+        .onAppear {
+            // Fix input assistant layout issues
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first {
+                window.setNeedsLayout()
+            }
         }
     }
 }

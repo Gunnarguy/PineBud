@@ -317,4 +317,30 @@ class APIManager: ObservableObject {
         let queryResponse = try JSONDecoder().decode(PineconeQueryResponse.self, from: data)
         return queryResponse.matches
     }
+    
+    func queryIndex(indexName: String, request: PineconeQueryRequest) async throws -> PineconeQueryResponse {
+        guard !pineconeApiKey.isEmpty else {
+            throw NSError(domain: "com.universalrag", code: 401, userInfo: [NSLocalizedDescriptionKey: "Pinecone API key not set"])
+        }
+        
+        let host = try await getIndexHost(name: indexName)
+        let url = URL(string: "https://\(host)/query")!
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        
+        let requestBody = try JSONEncoder().encode(request)
+        urlRequest.httpBody = requestBody
+        
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            let errorResponse = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data)
+            throw NSError(domain: "com.universalrag", code: (response as? HTTPURLResponse)?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: errorResponse?.error.message ?? "Failed to query Pinecone index"])
+        }
+        
+        return try JSONDecoder().decode(PineconeQueryResponse.self, from: data)
+    }
 }

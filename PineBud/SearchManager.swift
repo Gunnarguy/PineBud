@@ -3,7 +3,7 @@ import Foundation
 import Combine
 import SwiftUI
 
-class SearchManager: ObservableObject {
+@MainActor final class SearchManager: ObservableObject, Sendable {
     @Published var isSearching = false
     @Published var searchResults: SearchResults?
     @Published var searchError: Error?
@@ -99,13 +99,12 @@ class SearchManager: ObservableObject {
         Task {
             do {
                 let results = try await executeSearch(query: query)
-                
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.searchResults = results
                     self.isSearching = false
                 }
             } catch {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.searchError = error
                     self.isSearching = false
                 }
@@ -113,22 +112,21 @@ class SearchManager: ObservableObject {
         }
     }
     
+    @MainActor
     private func addToSearchHistory(_ query: String) {
-        DispatchQueue.main.async {
-            // Remove if already exists to avoid duplicates
-            self.searchHistory.removeAll(where: { $0 == query })
-            
-            // Add to beginning
-            self.searchHistory.insert(query, at: 0)
-            
-            // Trim if needed
-            if self.searchHistory.count > self.maxHistoryItems {
-                self.searchHistory = Array(self.searchHistory.prefix(self.maxHistoryItems))
-            }
-            
-            // Save to UserDefaults
-            UserDefaults.standard.set(self.searchHistory, forKey: self.searchHistoryKey)
+        // Remove if already exists to avoid duplicates
+        searchHistory.removeAll(where: { $0 == query })
+        
+        // Add to beginning
+        searchHistory.insert(query, at: 0)
+        
+        // Trim if needed
+        if searchHistory.count > maxHistoryItems {
+            searchHistory = Array(searchHistory.prefix(maxHistoryItems))
         }
+        
+        // Save to UserDefaults
+        UserDefaults.standard.set(searchHistory, forKey: searchHistoryKey)
     }
     
     func clearSearchHistory() {

@@ -7,7 +7,7 @@ struct OpenAIErrorResponse: Codable {
         let message: String
         let type: String
     }
-    
+
     let error: ErrorDetail
 }
 
@@ -16,7 +16,7 @@ struct OpenAIEmbeddingsResponse: Codable {
         let embedding: [Double]
         let index: Int
     }
-    
+
     let data: [EmbeddingData]
     let model: String
     let usage: [String: Int]
@@ -28,12 +28,12 @@ struct OpenAIChatCompletionResponse: Codable {
             let role: String
             let content: String
         }
-        
+
         let message: Message
         let finish_reason: String
         let index: Int
     }
-    
+
     let id: String
     let choices: [Choice]
 }
@@ -42,36 +42,48 @@ struct OpenAIChatCompletionResponse: Codable {
 struct PineconeListIndexesResponse: Codable {
     struct IndexInfo: Codable {
         let name: String
+        enum CodingKeys: String, CodingKey {
+            case name
+        }
     }
-    
+
     let indexes: [IndexInfo]
+    enum CodingKeys: String, CodingKey {
+        case indexes
+    }
 }
 
 struct PineconeIndexResponse: Codable {
     struct Status: Codable {
         let state: String
+        enum CodingKeys: String, CodingKey {
+            case state
+        }
     }
-    
+
     let name: String
     let dimension: Int
     let metric: String
     let host: String
     let status: Status
+    enum CodingKeys: String, CodingKey {
+        case name, dimension, metric, host, status
+    }
 }
 
 struct PineconeStatsResponse: Codable {
     struct NamespaceStats: Codable {
         let vectorCount: Int
-        
+
         enum CodingKeys: String, CodingKey {
             case vectorCount = "vectorCount"
         }
     }
-    
+
     let namespaces: [String: NamespaceStats]
     let dimension: Int
     let totalVectorCount: Int
-    
+
     enum CodingKeys: String, CodingKey {
         case namespaces
         case dimension
@@ -79,17 +91,25 @@ struct PineconeStatsResponse: Codable {
     }
 }
 
-struct PineconeVector {
+struct PineconeVector: Codable {
     let id: String
     let values: [Double]
-    let metadata: [String: Any]
-    
+    let metadata: [String: AnyCodable]
+
     func toDictionary() -> [String: Any] {
+        var dictMetadata: [String: Any] = [:]
+        for (key, anyCodable) in metadata {
+            dictMetadata[key] = anyCodable.value
+        }
         return [
             "id": id,
             "values": values,
-            "metadata": metadata
+            "metadata": dictMetadata
         ]
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, values, metadata
     }
 }
 
@@ -97,16 +117,16 @@ struct PineconeMatch: Codable {
     let id: String
     let score: Double
     let metadata: [String: Any]
-    
+
     private enum CodingKeys: String, CodingKey {
         case id, score, metadata
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         score = try container.decode(Double.self, forKey: .score)
-        
+
         // Decode metadata as [String: Any]
         let metadataContainer = try container.decode([String: AnyCodable].self, forKey: .metadata)
         var decodedMetadata = [String: Any]()
@@ -115,12 +135,12 @@ struct PineconeMatch: Codable {
         }
         metadata = decodedMetadata
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(score, forKey: .score)
-        
+
         // Encode metadata as [String: AnyCodable]
         var encodableMetadata = [String: AnyCodable]()
         for (key, value) in metadata {
@@ -132,24 +152,45 @@ struct PineconeMatch: Codable {
 
 struct PineconeUpsertResponse: Codable {
     let upsertedCount: Int
+    enum CodingKeys: String, CodingKey {
+        case upsertedCount
+    }
 }
+
+struct PineconeQueryRequest: Codable {
+    let topK: Int
+    let includeMetadata: Bool
+    let namespace: String?
+    let filter: [String: String]?
+    let vector: [Double]?
+    let sparseVector: [String: Double]?
+    let includeValues: Bool?
+    let id: String?
+    enum CodingKeys: String, CodingKey {
+        case topK, includeMetadata, namespace, filter, vector, sparseVector, includeValues, id
+    }
+}
+
 
 struct PineconeQueryResponse: Codable {
     let matches: [PineconeMatch]
     let namespace: String?
+    enum CodingKeys: String, CodingKey {
+        case matches, namespace
+    }
 }
 
 // Helper for encoding/decoding Any values
 struct AnyCodable: Codable {
     let value: Any
-    
+
     init(_ value: Any) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
             self.value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
@@ -168,10 +209,10 @@ struct AnyCodable: Codable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable cannot decode value")
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch self.value {
         case is NSNull:
             try container.encodeNil()
@@ -193,5 +234,3 @@ struct AnyCodable: Codable {
         }
     }
 }
-
-

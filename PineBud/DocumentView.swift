@@ -253,11 +253,11 @@ struct DocumentsView: View {
                         id: "\(document.id)_\(i)",
                         values: embedding,
                         metadata: [
-                            "text": chunk.content,
-                            "source": document.metadata.fileName,
-                            "document_id": document.id,
-                            "chunk_id": String(i),
-                            "hash": chunk.contentHash ?? ""
+                            "text": AnyCodable(chunk.content),
+                            "source": AnyCodable(document.metadata.fileName),
+                            "document_id": AnyCodable(document.id),
+                            "chunk_id": AnyCodable(String(i)),
+                            "hash": AnyCodable(chunk.contentHash ?? "")
                         ]
                     )
                     vectors.append(vector)
@@ -300,9 +300,9 @@ struct DocumentsView: View {
         indexingProgress = 0.0
         
         Task {
-            var processedCount = 0
+            let totalCount = nonIndexedDocuments.count
             
-            for document in nonIndexedDocuments {
+            for (index, document) in nonIndexedDocuments.enumerated() {
                 do {
                     // Chunk document
                     let chunks = documentManager.chunkDocument(
@@ -334,12 +334,12 @@ struct DocumentsView: View {
                             id: "\(document.id)_\(i)",
                             values: embedding,
                             metadata: [
-                                "text": chunk.content,
-                                "source": document.metadata.fileName,
-                                "document_id": document.id,
-                                "chunk_id": String(i),
-                                "hash": chunk.contentHash ?? ""
-                            ]
+                                "text": AnyCodable(chunk.content),
+                                "source": AnyCodable(document.metadata.fileName),
+                                "document_id": AnyCodable(document.id),
+                                "chunk_id": AnyCodable(String(i)),
+                                "hash": AnyCodable(chunk.contentHash ?? "")
+                            ] as [String : AnyCodable]
                         )
                         vectors.append(vector)
                     }
@@ -354,16 +354,18 @@ struct DocumentsView: View {
                     // Mark document as indexed
                     try documentManager.markDocumentAsIndexed(document)
                     
-                    processedCount += 1
-                    DispatchQueue.main.async {
-                        indexingProgress = Double(processedCount) / Double(nonIndexedDocuments.count)
+                    // Update progress on the main thread
+                    let currentProgress = Double(index + 1) / Double(totalCount)
+                    await MainActor.run {
+                        indexingProgress = currentProgress
                     }
                 } catch {
                     print("Error indexing document \(document.metadata.fileName): \(error.localizedDescription)")
                 }
             }
             
-            DispatchQueue.main.async {
+            // Update completion status on the main thread
+            await MainActor.run {
                 isIndexing = false
                 indexingProgress = 1.0
             }
@@ -734,13 +736,13 @@ struct DocumentDetailView: View {
                     let vector = PineconeVector(
                         id: "\(document.id)_\(i)",
                         values: embedding,
-                        metadata: [
-                            "text": chunk.content,
-                            "source": document.metadata.fileName,
-                            "document_id": document.id,
-                            "chunk_id": String(i),
-                            "hash": chunk.contentHash ?? ""
-                        ]
+                            metadata: [
+                                "text": AnyCodable(chunk.content),
+                                "source": AnyCodable(document.metadata.fileName),
+                                "document_id": AnyCodable(document.id),
+                                "chunk_id": AnyCodable(String(i)),
+                                "hash": AnyCodable(chunk.contentHash ?? "")
+                            ] as [String : AnyCodable]
                     )
                     vectors.append(vector)
                 }

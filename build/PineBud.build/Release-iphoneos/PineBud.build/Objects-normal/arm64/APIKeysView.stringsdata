@@ -1,0 +1,152 @@
+{
+  "source": "/Users/gunnarhostetler/Documents/GitHub/PineBud/PineBud/APIKeysView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "API Keys",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 86
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "OpenAI API Key",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 18
+        }
+      },
+      {
+        "comment": "",
+        "key": "Required for embeddings and completions",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 18
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pinecone API Key",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "Required for vector database operations",
+        "location": {
+          "startingColumn": 72,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "sk-...",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 20
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done Editing",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "Get OpenAI API Key",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 43
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 37
+        }
+      },
+      {
+        "comment": "",
+        "key": "...",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done Editing",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Get Pinecone API Key",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 71
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save API Keys",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "API Keys Saved",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 92
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your API keys have been securely stored.",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 94
+        }
+      }
+    ]
+  },
+  "version": 1
+}

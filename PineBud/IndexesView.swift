@@ -27,8 +27,9 @@ struct IndexesView: View {
                             Text(index).tag(index)
                         }
                     }
+                    .id("index-picker-\(indexes.count)") // Force picker to recreate when indexes array changes
                     .pickerStyle(MenuPickerStyle())
-                    .onChange(of: settingsManager.activeIndex) { newValue in
+                    .onChange(of: settingsManager.activeIndex) { oldValue, newValue in
                         if let indexName = newValue, !indexName.isEmpty {
                             settingsManager.setActiveIndex(indexName)
                             loadNamespaces(for: indexName)
@@ -51,8 +52,9 @@ struct IndexesView: View {
                             Text(namespace).tag(namespace)
                         }
                     }
+                    .id("namespace-picker-\(namespaces.count)") // Force picker to recreate when namespaces array changes
                     .pickerStyle(MenuPickerStyle())
-                    .onChange(of: settingsManager.activeNamespace) { newValue in
+                    .onChange(of: settingsManager.activeNamespace) { oldValue, newValue in
                         settingsManager.setActiveNamespace(newValue)
                     }
                     .disabled(settingsManager.activeIndex == nil || settingsManager.activeIndex?.isEmpty == true)
@@ -198,9 +200,16 @@ struct IndexesView: View {
                     self.indexes = loadedIndexes
                     self.isLoading = false
                     
-                    // Load namespaces for active index
+                    // Validate active index after loading
                     if let activeIndex = settingsManager.activeIndex, !activeIndex.isEmpty {
-                        self.loadNamespaces(for: activeIndex)
+                        if !loadedIndexes.contains(activeIndex) {
+                            // The active index no longer exists, reset selection
+                            self.settingsManager.activeIndex = nil
+                            self.namespaces = []
+                        } else {
+                            // Active index is valid, load its namespaces
+                            self.loadNamespaces(for: activeIndex)
+                        }
                     }
                 }
             } catch {
@@ -225,6 +234,14 @@ struct IndexesView: View {
                 DispatchQueue.main.async {
                     self.namespaces = loadedNamespaces
                     self.isLoading = false
+                    
+                    // Validate active namespace after loading
+                    if let activeNamespace = settingsManager.activeNamespace, !activeNamespace.isEmpty {
+                        if !loadedNamespaces.contains(activeNamespace) {
+                            // The active namespace no longer exists, reset selection
+                            self.settingsManager.activeNamespace = nil
+                        }
+                    }
                 }
             } catch {
                 print("Error loading namespaces: \(error.localizedDescription)")
@@ -238,10 +255,3 @@ struct IndexesView: View {
         }
     }
 }
-
-
-
-
-
-
-

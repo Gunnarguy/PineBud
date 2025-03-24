@@ -1,0 +1,320 @@
+{
+  "source": "/Users/gunnarhostetler/Documents/GitHub/PineBud/PineBud/DocumentView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Documents",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 162
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search documents",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 39
+        }
+      },
+      {
+        "comment": "",
+        "key": "No Documents",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add documents to get started",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Documents",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 71
+        }
+      },
+      {
+        "comment": "",
+        "key": "View Details",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 95
+        }
+      },
+      {
+        "comment": "",
+        "key": "Index Document",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Processing documents...",
+        "location": {
+          "startingColumn": 57,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "Indexing documents...",
+        "location": {
+          "startingColumn": 85,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Documents",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 144
+        }
+      },
+      {
+        "comment": "",
+        "key": "Index All",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 153
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Document",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete '%@'? This action cannot be undone.",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 179
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Documents",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 197
+        }
+      },
+      {
+        "comment": "",
+        "key": "Index All Documents",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 203
+        }
+      },
+      {
+        "comment": "",
+        "key": "•",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 402
+        }
+      },
+      {
+        "comment": "",
+        "key": "Document Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 656
+        }
+      },
+      {
+        "comment": "",
+        "key": "•",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 510
+        }
+      },
+      {
+        "comment": "",
+        "key": "Added %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 514
+        }
+      },
+      {
+        "comment": "",
+        "key": "Indexed",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 533
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not Indexed",
+        "location": {
+          "startingColumn": 72,
+          "startingLine": 533
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 542
+        }
+      },
+      {
+        "comment": "",
+        "key": "Chunks",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 546
+        }
+      },
+      {
+        "comment": "",
+        "key": "Share",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 561
+        }
+      },
+      {
+        "comment": "",
+        "key": "(Content truncated, showing first 1000 characters)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 600
+        }
+      },
+      {
+        "comment": "",
+        "key": "Content Preview",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 574
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show More",
+        "location": {
+          "startingColumn": 62,
+          "startingLine": 587
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show Less",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 587
+        }
+      },
+      {
+        "comment": "",
+        "key": "Chunks (%lld)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 610
+        }
+      },
+      {
+        "comment": "",
+        "key": "(Showing 3 of %lld chunks)",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 618
+        }
+      },
+      {
+        "comment": "",
+        "key": "Index Document",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 635
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Document",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 647
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete Document",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 660
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete '%@'? This action cannot be undone.",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 661
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 662
+        }
+      },
+      {
+        "comment": "",
+        "key": "(Tap to expand)",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 827
+        }
+      },
+      {
+        "comment": "",
+        "key": "Chunk #%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 798
+        }
+      }
+    ]
+  },
+  "version": 1
+}

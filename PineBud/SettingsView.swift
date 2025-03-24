@@ -40,7 +40,7 @@ struct SettingsView: View {
                 // Chunking Settings
                 Section(header: Text("Text Processing")) {
                     Stepper("Chunk Size: \(chunkSize)", value: $chunkSize, in: 256...4096, step: 128)
-                        .onChange(of: chunkSize) { newValue in
+                        .onChange(of: chunkSize) { oldValue, newValue in
                             settingsManager.chunkSize = newValue
                         }
                     
@@ -49,7 +49,7 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                     
                     Stepper("Chunk Overlap: \(chunkOverlap)", value: $chunkOverlap, in: 0...1024, step: 64)
-                        .onChange(of: chunkOverlap) { newValue in
+                        .onChange(of: chunkOverlap) { oldValue, newValue in
                             settingsManager.chunkOverlap = newValue
                         }
                     
@@ -58,7 +58,7 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                     
                     Toggle("Enable OCR for Images", isOn: $enableOCR)
-                        .onChange(of: enableOCR) { newValue in
+                        .onChange(of: enableOCR) { oldValue, newValue in
                             settingsManager.enableOCR = newValue
                         }
                 }
@@ -66,7 +66,7 @@ struct SettingsView: View {
                 // Embedding Settings
                 Section(header: Text("Embedding Settings")) {
                     Stepper("Embedding Dimension: \(embeddingDimension)", value: $embeddingDimension, in: 512...4096, step: 64)
-                        .onChange(of: embeddingDimension) { newValue in
+                        .onChange(of: embeddingDimension) { oldValue, newValue in
                             settingsManager.embeddingDimension = newValue
                         }
                     
@@ -193,7 +193,3 @@ struct SettingsView: View {
         print("Delete all documents")
     }
 }
-
-
-
-

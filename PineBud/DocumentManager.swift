@@ -16,13 +16,13 @@ import NaturalLanguage
 import UniformTypeIdentifiers
 import CommonCrypto
 
-class DocumentManager: ObservableObject {
+@MainActor final class DocumentManager: ObservableObject, Sendable {
     @Published var isProcessing = false
     @Published var processingProgress: Double = 0.0
     @Published var documents: [DocumentItem] = []
     
     private let fileManager = FileManager.default
-    private var processingQueue = DispatchQueue(label: "com.universalrag.processing", qos: .userInitiated, attributes: .concurrent)
+    private let processingQueue = DispatchQueue(label: "com.universalrag.processing", qos: .userInitiated, attributes: .concurrent)
     
     // Supported MIME types
     let supportedTypes: [UTType] = [
@@ -91,36 +91,50 @@ class DocumentManager: ObservableObject {
         }
     }
     
+    @MainActor
     func processDocuments(urls: [URL]) async throws {
         guard !urls.isEmpty else { return }
         
-        DispatchQueue.main.async {
-            self.isProcessing = true
-            self.processingProgress = 0.0
-        }
+        isProcessing = true
+        processingProgress = 0.0
         
         var newDocuments: [DocumentItem] = []
+        let totalCount = urls.count
         var processedCount = 0
         
         for url in urls {
             do {
                 // Create a copy of the file in our documents directory
-                let newURL = documentsDirectory.appendingPathComponent(url.lastPathComponent)
+                let documentDir = documentsDirectory
+                let newURL = documentDir.appendingPathComponent(url.lastPathComponent)
+                let fileManagerCopy = fileManager
                 
-                if url.startAccessingSecurityScopedResource() {
-                    try fileManager.copyItem(at: url, to: newURL)
+                // Enhanced security scope handling
+                let securityScopeGranted = url.startAccessingSecurityScopedResource()
+                
+                // Log security scope status
+                print("Security scope access \(securityScopeGranted ? "granted" : "denied") for \(url.lastPathComponent)")
+                
+                do {
+                    try fileManagerCopy.copyItem(at: url, to: newURL)
+                } catch {
+                    print("File copy error: \(error.localizedDescription)")
+                    throw error
+                }
+                
+                if securityScopeGranted {
                     url.stopAccessingSecurityScopedResource()
                 }
                 
                 // Extract text from document
-                let text = try await self.extractText(from: newURL)
+                let text = try await extractText(from: newURL)
                 
                 // Create document metadata
                 let metadata = DocumentMetadata(
                     id: UUID().uuidString,
                     url: newURL,
                     fileName: url.lastPathComponent,
-                    fileSize: try fileManager.attributesOfItem(atPath: newURL.path)[.size] as? Int64 ?? 0,
+                    fileSize: try fileManagerCopy.attributesOfItem(atPath: newURL.path)[.size] as? Int64 ?? 0,
                     dateAdded: Date(),
                     textContent: text,
                     isIndexed: false,
@@ -136,8 +150,8 @@ class DocumentManager: ObservableObject {
                 
                 // Update progress
                 processedCount += 1
-                let progress = Double(processedCount) / Double(urls.count)
-                DispatchQueue.main.async {
+                let progress = Double(processedCount) / Double(totalCount)
+                await MainActor.run {
                     self.processingProgress = progress
                 }
             } catch {
@@ -145,15 +159,13 @@ class DocumentManager: ObservableObject {
             }
         }
         
-        // Update documents list
-        DispatchQueue.main.async {
-            self.documents.append(contentsOf: newDocuments)
-            self.isProcessing = false
-            self.processingProgress = 1.0
-        }
+        // Update documents list on the main actor
+        documents.append(contentsOf: newDocuments)
+        isProcessing = false
+        processingProgress = 1.0
     }
     
-    func extractText(from url: URL) async throws -> String {
+    nonisolated func extractText(from url: URL) async throws -> String {
         let fileType = try url.resourceValues(forKeys: [.contentTypeKey]).contentType
         
         if fileType == .pdf {
@@ -169,7 +181,7 @@ class DocumentManager: ObservableObject {
         }
     }
     
-    private func extractTextFromPDF(url: URL) async throws -> String {
+    nonisolated private func extractTextFromPDF(url: URL) async throws -> String {
         guard let pdfDocument = PDFDocument(url: url) else {
             throw NSError(domain: "com.universalrag", code: 400, userInfo: [NSLocalizedDescriptionKey: "Could not open PDF"])
         }
@@ -203,7 +215,7 @@ class DocumentManager: ObservableObject {
         return extractedText
     }
     
-    private func extractTextFromImage(url: URL) async throws -> String {
+    nonisolated private func extractTextFromImage(url: URL) async throws -> String {
         guard let image = UIImage(contentsOfFile: url.path) else {
             throw NSError(domain: "com.universalrag", code: 400, userInfo: [NSLocalizedDescriptionKey: "Could not load image"])
         }
@@ -221,7 +233,7 @@ class DocumentManager: ObservableObject {
         return try await performOCR(on: image)
     }
     
-    private func extractTextFromHTML(url: URL) throws -> String {
+    nonisolated private func extractTextFromHTML(url: URL) throws -> String {
         let htmlString = try String(contentsOf: url, encoding: .utf8)
         
         // Basic HTML to text conversion
@@ -234,7 +246,7 @@ class DocumentManager: ObservableObject {
         return text
     }
     
-    private func extractTextFromTextFile(url: URL) throws -> String {
+    nonisolated private func extractTextFromTextFile(url: URL) throws -> String {
         // Try different encodings
         let encodings: [String.Encoding] = [.utf8, .ascii, .isoLatin1, .utf16, .windowsCP1252]
         
@@ -252,13 +264,13 @@ class DocumentManager: ObservableObject {
         return String(decoding: data, as: UTF8.self)
     }
     
-    private func extractTextFromOfficeDocument(url: URL) throws -> String {
+    nonisolated private func extractTextFromOfficeDocument(url: URL) throws -> String {
         // In a real app, you would use a library for processing Office documents
         // Here we'll use a placeholder implementation
         return "[Office document content would be extracted here]"
     }
     
-    private func performOCR(on image: UIImage?) async throws -> String {
+    nonisolated private func performOCR(on image: UIImage?) async throws -> String {
         guard let unwrappedImage = image, let cgImage = unwrappedImage.cgImage else {
             throw NSError(domain: "com.universalrag", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
         }
@@ -425,5 +437,10 @@ class DocumentManager: ObservableObject {
         if let index = documents.firstIndex(where: { $0.id == document.id }) {
             documents[index].metadata = metadata
         }
+    }
+    
+    // Helper method to find a document by ID
+    func findDocument(with id: String) -> DocumentItem? {
+        return documents.first(where: { $0.id == id })
     }
 }
