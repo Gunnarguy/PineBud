@@ -41,10 +41,12 @@ import SwiftUI
         let queryEmbedding = try await apiManager.generateEmbeddings(for: [query]).first!
         
         // Query Pinecone
+        let namespace = settingsManager.activeNamespace
+        print("Querying Pinecone index: \(indexName), namespace: \(namespace ?? "default")")
         let matches = try await apiManager.queryVectors(
             indexName: indexName,
             vector: queryEmbedding,
-            namespace: settingsManager.activeNamespace,
+            namespace: namespace,
             topK: 10
         )
         

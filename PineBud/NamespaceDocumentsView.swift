@@ -1,6 +1,6 @@
 // MARK: - NamespaceDocumentsView.swift
 import SwiftUI
-import PineBud
+
 
 struct NamespaceDocumentsView: View {
     @EnvironmentObject var documentManager: DocumentManager
@@ -83,6 +83,8 @@ struct NamespaceDocumentsView: View {
             return
         }
         
+        print("Active Index Name: \(indexName)") // Added print statement
+
         DispatchQueue.main.async {
             self.isLoading = true
         }
@@ -130,7 +132,7 @@ struct NamespaceDocumentsView: View {
                         documentsByNamespace[namespace] = Array(documentIds)
                     }
                 } catch {
-                    print("Error fetching documents for namespace \(namespace): \(error.localizedDescription)")
+                    print("Error fetching documents for namespace \(namespace): \(error.localizedDescription), error: \(error)")
                 }
             }
             

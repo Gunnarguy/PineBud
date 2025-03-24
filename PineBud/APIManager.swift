@@ -250,12 +250,12 @@ class APIManager: ObservableObject {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
+        
         // Need to batch vectors to avoid timeout or payload size issues
-        let maxBatchSize = 100
         var totalUpserted = 0
         
-        for i in stride(from: 0, to: vectors.count, by: maxBatchSize) {
-            let end = min(i + maxBatchSize, vectors.count)
+        for i in stride(from: 0, to: vectors.count, by: 100) {
+            let end = min(i + 100, vectors.count)
             let batch = Array(vectors[i..<end])
             
             let vectorDicts = batch.map { $0.toDictionary() }
@@ -270,50 +270,68 @@ class APIManager: ObservableObject {
             
             request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
             
-            let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let concreteHttpResponse = response as? HTTPURLResponse
+
+        guard let httpResponse = concreteHttpResponse, httpResponse.statusCode == 200 else {
+            print("Pinecone Upsert Error Response: Status Code = \(concreteHttpResponse?.statusCode ?? -1), Data = \(String(data: data, encoding: .utf8) ?? "nil")")
             
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                throw NSError(domain: "com.universalrag", code: (response as? HTTPURLResponse)?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: "Failed to upsert vectors"])
-            }
+            throw NSError(domain: "com.universalrag", code: concreteHttpResponse?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: "Failed to upsert vectors"])
+        }
             
-            let upsertResponse = try JSONDecoder().decode(PineconeUpsertResponse.self, from: data)
-            totalUpserted += upsertResponse.upsertedCount
+        let upsertResponse = try JSONDecoder().decode(PineconeUpsertResponse.self, from: data)
+        totalUpserted += upsertResponse.upsertedCount
         }
         
         return totalUpserted
     }
     
     func queryVectors(indexName: String, vector: [Double], namespace: String?, topK: Int = 10) async throws -> [PineconeMatch] {
-        guard !pineconeApiKey.isEmpty else {
+        guard let pineconeApiKey = KeychainHelper.shared.get(key: "pinecone_api_key") else {
             throw NSError(domain: "com.universalrag", code: 401, userInfo: [NSLocalizedDescriptionKey: "Pinecone API key not set"])
         }
-        
-        let host = try await getIndexHost(name: indexName)
-        let url = URL(string: "https://\(host)/query")!
-        
+
+        guard let host = try? await getIndexHost(name: indexName) else {
+            throw NSError(domain: "com.universalrag", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to get index host"])
+        }
+
+        let baseURL = "https://\(host)"
+        let url = URL(string: "\(baseURL)/vectors/query")!
+
+        print("Pinecone Query URL: \(url.absoluteString)")
+        print("Pinecone Index Name: \(indexName)")
+        print("Pinecone Namespace: \(namespace ?? "default")")
+        print("Pinecone API Key: \(pineconeApiKey)")
+
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
-        
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(pineconeApiKey, forHTTPHeaderField: "Api-Key")
+
+
         var requestBody: [String: Any] = [
             "vector": vector,
             "topK": topK,
             "includeMetadata": true
         ]
-        
         if let namespace = namespace, !namespace.isEmpty {
             requestBody["namespace"] = namespace
         }
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        
+        print("Pinecone Query Request Body: \(requestBody)")
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
+
         let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw NSError(domain: "com.universalrag", code: (response as? HTTPURLResponse)?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: "Failed to query vectors"])
+        let httpResponse = response as? HTTPURLResponse
+
+        guard let httpStatusCode = httpResponse?.statusCode, httpStatusCode == 200 else {
+            print("Pinecone Query Error Response: Status Code = \(httpResponse?.statusCode ?? -1), Data = \(String(data: data, encoding: .utf8) ?? "nil")")
+            throw NSError(domain: "com.universalrag", code: httpResponse?.statusCode ?? 500, userInfo: [NSLocalizedDescriptionKey: "Failed to query vectors"])
         }
-        
+
+
         let queryResponse = try JSONDecoder().decode(PineconeQueryResponse.self, from: data)
         return queryResponse.matches
     }
@@ -324,7 +342,8 @@ class APIManager: ObservableObject {
         }
         
         let host = try await getIndexHost(name: indexName)
-        let url = URL(string: "https://\(host)/query")!
+        let baseURL = "https://\(host)"
+        let url = URL(string: "\(baseURL)/query")!
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
