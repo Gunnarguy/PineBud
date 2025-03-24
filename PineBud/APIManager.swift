@@ -109,7 +109,7 @@ class APIManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -131,7 +131,7 @@ class APIManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
         let requestBody: [String: Any] = [
             "name": name,
@@ -178,7 +178,7 @@ class APIManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -201,7 +201,7 @@ class APIManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -223,7 +223,7 @@ class APIManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -248,7 +248,7 @@ class APIManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
         // Need to batch vectors to avoid timeout or payload size issues
         let maxBatchSize = 100
@@ -294,7 +294,7 @@ class APIManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
+        request.addValue("\(pineconeApiKey)", forHTTPHeaderField: "Api-Key")
         
         var requestBody: [String: Any] = [
             "vector": vector,
