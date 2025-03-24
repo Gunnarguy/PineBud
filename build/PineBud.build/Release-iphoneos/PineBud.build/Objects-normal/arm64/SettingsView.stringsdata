@@ -1,0 +1,248 @@
+{
+  "source": "/Users/gunnarhostetler/Documents/GitHub/PineBud/PineBud/SettingsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 148
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 149
+        }
+      },
+      {
+        "comment": "",
+        "key": "API Keys",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 25
+        }
+      },
+      {
+        "comment": "",
+        "key": "Text Processing",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Embedding Settings",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "Active Resources",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "App Information",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "Manage API Keys",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 35
+        }
+      },
+      {
+        "comment": "",
+        "key": "Larger chunks contain more context but use more tokens",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overlap helps maintain context between chunks",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 56
+        }
+      },
+      {
+        "comment": "",
+        "key": "Chunk Size: %lld",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "Chunk Overlap: %lld",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 51
+        }
+      },
+      {
+        "comment": "",
+        "key": "Enable OCR for Images",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 60
+        }
+      },
+      {
+        "comment": "",
+        "key": "Default for text-embedding-3-large is 3072",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 73
+        }
+      },
+      {
+        "comment": "",
+        "key": "Embedding Dimension: %lld",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 68
+        }
+      },
+      {
+        "comment": "",
+        "key": "Active Index",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 81
+        }
+      },
+      {
+        "comment": "",
+        "key": "Active Namespace",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "Version",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 98
+        }
+      },
+      {
+        "comment": "",
+        "key": "7.0",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 100
+        }
+      },
+      {
+        "comment": "",
+        "key": "Documents",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset to Default Settings",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 120
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear All Documents",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear Search History",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 142
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear All Documents",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 161
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to delete all documents? This action cannot be undone.",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 162
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete All",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset Settings",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 171
+        }
+      },
+      {
+        "comment": "",
+        "key": "Are you sure you want to reset all settings to their default values?",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 173
+        }
+      }
+    ]
+  },
+  "version": 1
+}

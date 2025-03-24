@@ -1,0 +1,56 @@
+{
+  "source": "/Users/gunnarhostetler/Documents/GitHub/PineBud/PineBud/CreateNamespaceView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Create Namespace",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 39
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "Namespace Information",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 18
+        }
+      },
+      {
+        "comment": "",
+        "key": "Namespaces help organize vectors within an index. No API call is needed to create a namespace; it will be created automatically when vectors are first upserted to that namespace.",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "Namespace Name",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 19
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Namespace",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 26
+        }
+      }
+    ]
+  },
+  "version": 1
+}
