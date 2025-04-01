@@ -1,196 +1,304 @@
-// MARK: - SearchView.swift
 import SwiftUI
 
+/// View for searching and displaying results from the RAG system
 struct SearchView: View {
-    @EnvironmentObject var searchManager: SearchManager
-    @EnvironmentObject var settingsManager: SettingsManager
-    @EnvironmentObject var apiManager: APIManager
-    
-    @State private var query = ""
-    @State private var selectedSource: SourceResult?
-    @State private var showSourceDetail = false
-    @State private var showHistorySheet = false
+    @ObservedObject var viewModel: SearchViewModel
+    @State private var isExpandedResults = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Search bar
-            HStack {
-                TextField("Enter your query...", text: $query)
-                    .padding(10)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(8)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        performSearch()
+        VStack {
+            // Index and Namespace Selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Search Configuration")
+                    .font(.headline)
+                    .padding(.top, 4)
+                
+                HStack {
+                    Picker("Index:", selection: $viewModel.selectedIndex.toUnwrapped(defaultValue: "")) {
+                        Text("Select Index").tag("")
+                        ForEach(viewModel.pineconeIndexes, id: \.self) { index in
+                            Text(index).tag(index)
+                        }
                     }
+                    .onChange(of: viewModel.selectedIndex) { oldValue, newValue in
+                        if let index = newValue, !index.isEmpty {
+                            Task {
+                                await viewModel.setIndex(index)
+                            }
+                        }
+                    }
+                    
+                    Button(action: {
+                        Task {
+                            await viewModel.loadIndexes()
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(viewModel.isSearching)
+                }
+                
+                HStack {
+                    Picker("Namespace:", selection: $viewModel.selectedNamespace.toUnwrapped(defaultValue: "")) {
+                        Text("Default namespace").tag("")
+                        ForEach(viewModel.namespaces, id: \.self) { namespace in
+                            Text(namespace).tag(namespace)
+                        }
+                    }
+                    .onChange(of: viewModel.selectedNamespace) { oldValue, newValue in
+                        viewModel.setNamespace(newValue)
+                    }
+                    
+                    Button(action: {
+                        Task {
+                            await viewModel.loadNamespaces()
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(viewModel.isSearching)
+                }
+            }
+            .padding(.horizontal)
+            
+            // Search Box
+            HStack {
+                TextField("Enter your question...", text: $viewModel.searchQuery)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .disabled(viewModel.isSearching)
                 
                 Button(action: {
-                    showHistorySheet = true
-                }) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .padding(10)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .foregroundColor(.primary)
-                        .cornerRadius(8)
-                }
-                .disabled(searchManager.searchHistory.isEmpty)
-                
-                Button(action: performSearch) {
-                    Image(systemName: "magnifyingglass")
-                        .padding(10)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                .disabled(query.isEmpty || searchManager.isSearching || settingsManager.activeIndex == nil)
-            }
-            .padding()
-            
-            // No index warning
-            if settingsManager.activeIndex == nil {
-                VStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 40))
-                        .foregroundColor(.orange)
-                        .padding(.bottom, 4)
-                    
-                    Text("No active index selected")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Please select an index in the Indexes tab before searching")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                    
-                    NavigationLink(destination: IndexesView()) {
-                        Text("Go to Indexes")
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
+                    hideKeyboard()
+                    Task {
+                        await viewModel.performSearch()
                     }
+                }) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .background(Color.blue)
+                        .clipShape(Circle())
                 }
-                .padding()
-                .frame(maxHeight: .infinity)
+                .disabled(viewModel.searchQuery.isEmpty || viewModel.isSearching || viewModel.selectedIndex == nil)
             }
-            // Search results
-            else if let results = searchManager.searchResults {
-                SearchResultsView(results: results) { source in
-                    selectedSource = source
-                    showSourceDetail = true
-                }
-            }
-            // Loading state
-            else if searchManager.isSearching {
-                VStack(spacing: 16) {
+            .padding(.horizontal)
+            .padding(.bottom, 8)
+            
+            if viewModel.isSearching {
+                // Search Progress
+                VStack {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
-                        .scaleEffect(1.5)
-                    
                     Text("Searching...")
-                        .font(.headline)
-                    
-                    Text("Retrieving relevant documents and generating response")
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                }
-                .frame(maxHeight: .infinity)
-            }
-            // Error state
-            else if let error = searchManager.searchError {
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.orange)
-                    
-                    Text("Search Error")
-                        .font(.headline)
-                    
-                    Text(error.localizedDescription)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                        .padding()
-                    
-                    Button("Try Again") {
-                        performSearch()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                    .disabled(query.isEmpty)
+                        .padding(.top, 4)
                 }
                 .padding()
-                .frame(maxHeight: .infinity)
-            }
-            // Empty state
-            else {
-                VStack(spacing: 20) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
-                    
-                    Text("Enter a query to search your documents")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Your search will retrieve relevant information from your indexed documents and generate an answer using AI.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    if !searchManager.searchHistory.isEmpty {
-                        Button("View Search History") {
-                            showHistorySheet = true
+            } else if !viewModel.generatedAnswer.isEmpty {
+                // Display Results in a TabView
+                TabView {
+                    // Answer Tab
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Generated Answer")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                            
+                            Text(viewModel.generatedAnswer)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                            
+                            if !viewModel.selectedResults.isEmpty {
+                                Button(action: {
+                                    Task {
+                                        await viewModel.generateAnswerFromSelected()
+                                    }
+                                }) {
+                                    Text("Regenerate from Selected")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(viewModel.isSearching)
+                            }
+                            
+                            Button(action: {
+                                viewModel.clearSearch()
+                            }) {
+                                Text("Clear Results")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(viewModel.isSearching)
                         }
-                        .padding(.top, 8)
+                        .padding()
+                    }
+                    .tabItem {
+                        Label("Answer", systemImage: "text.bubble")
+                    }
+                    
+                    // Sources Tab
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Source Documents")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                                .padding(.bottom, 8)
+                            
+                            ForEach(viewModel.searchResults) { result in
+                                SearchResultRow(result: result, isSelected: result.isSelected) {
+                                    viewModel.toggleResultSelection(result)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                    .tabItem {
+                        Label("Sources", systemImage: "doc.text")
                     }
                 }
-                .padding()
-                .frame(maxHeight: .infinity)
-            }
-        }
-        .navigationTitle("Search")
-        .sheet(isPresented: $showSourceDetail) {
-            if let source = selectedSource {
-                NavigationView {
-                    SourceDetailView(source: source)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.searchResults.isEmpty && !viewModel.searchQuery.isEmpty {
+                // No Results
+                VStack {
+                    Spacer()
+                    Text("No results found")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+            } else {
+                // Initial State
+                VStack {
+                    Spacer()
+                    Image(systemName: "magnifyingglass")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 60, height: 60)
+                        .foregroundColor(.secondary)
+                        .opacity(0.5)
+                    
+                    Text("Ask a question to search your documents")
+                        .foregroundColor(.secondary)
+                        .padding(.top)
+                    Spacer()
                 }
             }
         }
-        .sheet(isPresented: $showHistorySheet) {
-            SearchHistoryView { historyItem in
-                query = historyItem
-                showHistorySheet = false
-                performSearch()
+    }
+}
+
+/// Row for displaying a search result
+struct SearchResultRow: View {
+    let result: SearchResultModel
+    let isSelected: Bool
+    let onTap: () -> Void
+    
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(sourceFileName(from: result.sourceDocument))
+                        .font(.headline)
+                        .lineLimit(1)
+                    
+                    Text("Score: \(String(format: "%.3f", result.score))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.blue)
+                }
+                
+                Button(action: {
+                    withAnimation {
+                        isExpanded.toggle()
+                    }
+                }) {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            if isExpanded {
+                Text(result.content)
+                    .font(.body)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
             }
         }
-        .onAppear {
-            // Configure search manager
-            searchManager.configure(apiManager: apiManager, settingsManager: settingsManager)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
         }
     }
     
-    private func performSearch() {
-        guard !query.isEmpty, settingsManager.activeIndex != nil else { return }
-        
-        searchManager.performSearch(query: query)
-        
-        // Dismiss keyboard
-        hideKeyboard()
+    /// Extract filename from source path
+    private func sourceFileName(from source: String) -> String {
+        let components = source.split(separator: "/")
+        return components.last.map { String($0) } ?? source
     }
-    
-    private func hideKeyboard() {
+}
+
+/// Extension to hide keyboard
+extension View {
+    func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 
-
-
+#Preview {
+    let openAIService = OpenAIService(apiKey: "preview-key")
+    let pineconeService = PineconeService(apiKey: "preview-key")
+    let embeddingService = EmbeddingService(openAIService: openAIService)
+    
+    let viewModel = SearchViewModel(
+        pineconeService: pineconeService,
+        openAIService: openAIService,
+        embeddingService: embeddingService
+    )
+    
+    // Add sample results for preview
+    viewModel.searchQuery = "What is RAG?"
+    viewModel.generatedAnswer = "RAG (Retrieval Augmented Generation) is a technique that combines retrieval-based and generation-based approaches in natural language processing. It retrieves relevant documents from a database and then uses them as context for generating responses, improving accuracy and providing sources for the information."
+    
+    viewModel.searchResults = [
+        SearchResultModel(
+            content: "RAG systems combine the strengths of retrieval-based and generation-based approaches. By first retrieving relevant documents and then using them as context for generation, RAG systems can produce more accurate and grounded responses.",
+            sourceDocument: "intro_to_rag.pdf",
+            score: 0.98,
+            metadata: ["source": "intro_to_rag.pdf"]
+        ),
+        SearchResultModel(
+            content: "Retrieval Augmented Generation (RAG) is an AI framework that enhances large language model outputs by incorporating relevant information fetched from external knowledge sources.",
+            sourceDocument: "ai_techniques.md",
+            score: 0.92,
+            metadata: ["source": "ai_techniques.md"]
+        ),
+        SearchResultModel(
+            content: "The advantages of RAG include improved factual accuracy, reduced hallucinations, and the ability to access up-to-date information without retraining the model.",
+            sourceDocument: "rag_benefits.txt",
+            score: 0.87,
+            metadata: ["source": "rag_benefits.txt"]
+        )
+    ]
+    
+    return NavigationView {
+        SearchView(viewModel: viewModel)
+            .navigationTitle("Search")
+    }
+}

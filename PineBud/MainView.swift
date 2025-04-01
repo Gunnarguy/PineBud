@@ -1,63 +1,125 @@
-// MARK: - KeychainHelper.swift
-import Foundation
+import SwiftUI
 
-class KeychainHelper {
-    static let shared = KeychainHelper()
-    private init() {}
+/// Main view for the SwiftRAG application with tab navigation
+struct MainView: View {
+    @StateObject private var documentsViewModel: DocumentsViewModel
+    @StateObject private var searchViewModel: SearchViewModel
+    @StateObject private var settingsViewModel: SettingsViewModel
     
-    func save(key: String, value: String) {
-        // Get the existing data if any
-        if let existingItem = getKeychainQuery(key: key) {
-            let attributesToUpdate: [CFString: Any] = [
-                kSecValueData: value.data(using: .utf8)!
-            ]
+    @State private var selectedTab = 0
+    
+    init(documentsViewModel: DocumentsViewModel, searchViewModel: SearchViewModel, settingsViewModel: SettingsViewModel) {
+        _documentsViewModel = StateObject(wrappedValue: documentsViewModel)
+        _searchViewModel = StateObject(wrappedValue: searchViewModel)
+        _settingsViewModel = StateObject(wrappedValue: settingsViewModel)
+    }
+    
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            // Documents Tab
+            NavigationView {
+                DocumentsView(viewModel: documentsViewModel)
+                    .navigationTitle("Documents")
+            }
+            .tabItem {
+                Label("Documents", systemImage: "doc.fill")
+            }
+            .tag(0)
             
-            // Update the keychain item
-            SecItemUpdate(existingItem as CFDictionary, attributesToUpdate as CFDictionary)
-        } else {
-            // Create a new keychain item
-            let keychainQuery: [CFString: Any] = [
-                kSecClass: kSecClassGenericPassword,
-                kSecAttrAccount: key,
-                kSecValueData: value.data(using: .utf8)!,
-                kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
-            ]
+            // Search Tab
+            NavigationView {
+                SearchView(viewModel: searchViewModel)
+                    .navigationTitle("Search")
+            }
+            .tabItem {
+                Label("Search", systemImage: "magnifyingglass")
+            }
+            .tag(1)
             
-            SecItemAdd(keychainQuery as CFDictionary, nil)
+            // Processing Log Tab
+            NavigationView {
+                ProcessingView()
+                    .navigationTitle("Processing Log")
+            }
+            .tabItem {
+                Label("Logs", systemImage: "list.bullet")
+            }
+            .tag(2)
+            
+            // Settings Tab
+            NavigationView {
+                SettingsView(viewModel: settingsViewModel)
+                    .navigationTitle("Settings")
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gear")
+            }
+            .tag(3)
         }
-    }
-    
-    func get(key: String) -> String? {
-        var keychainQuery = getKeychainQuery(key: key)
-        keychainQuery?[kSecReturnData] = kCFBooleanTrue
-        keychainQuery?[kSecMatchLimit] = kSecMatchLimitOne
-        
-        var result: AnyObject?
-        let status = SecItemCopyMatching(keychainQuery! as CFDictionary, &result)
-        
-        if status == errSecSuccess, let data = result as? Data {
-            return String(data: data, encoding: .utf8)
+        .onAppear {
+            // Ensure API keys are loaded
+            settingsViewModel.loadAPIKeys()
+            
+            // Load Pinecone indexes when settings are available
+            Task {
+                if !settingsViewModel.pineconeAPIKey.isEmpty {
+                    await documentsViewModel.loadIndexes()
+                    await searchViewModel.loadIndexes()
+                }
+            }
         }
-        
-        return nil
-    }
-    
-    func delete(key: String) {
-        if let keychainQuery = getKeychainQuery(key: key) {
-            SecItemDelete(keychainQuery as CFDictionary)
+        // Show alert for any errors
+        .alert(isPresented: Binding<Bool>(
+            get: { documentsViewModel.errorMessage != nil ||
+                  searchViewModel.errorMessage != nil ||
+                  settingsViewModel.errorMessage != nil },
+            set: { _ in
+                documentsViewModel.errorMessage = nil
+                searchViewModel.errorMessage = nil
+                settingsViewModel.errorMessage = nil
+            }
+        )) {
+            Alert(
+                title: Text("Error"),
+                message: Text(documentsViewModel.errorMessage ??
+                             searchViewModel.errorMessage ??
+                             settingsViewModel.errorMessage ?? "Unknown error"),
+                dismissButton: .default(Text("OK"))
+            )
         }
-    }
-    
-    private func getKeychainQuery(key: String) -> [CFString: Any]? {
-        let keychainQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrAccount: key
-        ]
-        
-        var result: AnyObject?
-        let status = SecItemCopyMatching(keychainQuery as CFDictionary, &result)
-        
-        return status == errSecSuccess || status == errSecDuplicateItem ? keychainQuery : nil
     }
 }
 
+#Preview {
+    // Create services for preview
+    let fileProcessorService = FileProcessorService()
+    let textProcessorService = TextProcessorService()
+    let settingsViewModel = SettingsViewModel()
+    
+    // Initialize with dummy API keys for preview
+    settingsViewModel.openAIAPIKey = "preview-key"
+    settingsViewModel.pineconeAPIKey = "preview-key"
+    
+    let openAIService = OpenAIService(apiKey: settingsViewModel.openAIAPIKey)
+    let pineconeService = PineconeService(apiKey: settingsViewModel.pineconeAPIKey)
+    let embeddingService = EmbeddingService(openAIService: openAIService)
+    
+    let documentsViewModel = DocumentsViewModel(
+        fileProcessorService: fileProcessorService,
+        textProcessorService: textProcessorService,
+        embeddingService: embeddingService,
+        pineconeService: pineconeService
+    )
+    
+    let searchViewModel = SearchViewModel(
+        pineconeService: pineconeService,
+        openAIService: openAIService,
+        embeddingService: embeddingService
+    )
+    
+    return MainView(
+        documentsViewModel: documentsViewModel,
+        searchViewModel: searchViewModel,
+        settingsViewModel: settingsViewModel
+    )
+}

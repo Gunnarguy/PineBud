@@ -1,114 +1,72 @@
-// MARK: - CreateIndexView.swift
-import SwiftUI
+import Foundation
 
-struct CreateIndexView: View {
-    @Environment(\.presentationMode) var presentationMode
-    @EnvironmentObject var apiManager: APIManager
+/// Configuration settings for the SwiftRAG application
+struct Configuration {
+    // OpenAI Configuration
+    static let openAIAPIKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+    static let embeddingModel = "text-embedding-3-large"
+    static let embeddingDimension = 3072
+    static let completionModel = "gpt-4o"
     
-    let onIndexCreated: (String?) -> Void
+    // Pinecone Configuration
+    static let pineconeAPIKey = ProcessInfo.processInfo.environment["PINECONE_API_KEY"] ?? ""
+    static let pineconeEnvironment = "us-east-1" // Default region
     
-    @State private var indexName = ""
-    @State private var dimension = 3072
-    @State private var metric: String
-    @State private var isCreating = false
-    @State private var errorMessage: String?
-    @State private var showAdvancedOptions = false
+    // Document Processing Settings
+    static let defaultChunkSize = 1024
+    static let defaultChunkOverlap = 256
     
-    let availableMetrics = ["cosine", "euclidean", "dotproduct"]
+    // Maximum number of Pinecone indexes a user can create
+    static let maxIndexes = 5
     
-    init(onIndexCreated: @escaping (String?) -> Void) {
-        self.onIndexCreated = onIndexCreated
-        // Initialize with a default value that is guaranteed to be in the availableMetrics array
-        _metric = State(initialValue: "cosine")
+    // MIME Types supported for document processing
+    static let acceptedMimeTypes: Set<String> = [
+        // Document formats
+        "application/pdf", "text/plain",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        
+        // Web formats
+        "text/html", "text/css",
+        
+        // Data formats
+        "text/markdown", "application/json", "application/xml",
+        "text/csv", "text/tsv", "text/rtf", "application/rtf",
+        
+        // Code formats
+        "application/x-python", "text/x-python",
+        "application/javascript", "text/javascript",
+        
+        // Image formats (for OCR)
+        "image/png", "image/jpeg", "image/gif", "image/tiff", "image/bmp"
+    ]
+    
+    // Check if a MIME type is supported
+    static func isMimeTypeSupported(_ mimeType: String) -> Bool {
+        return acceptedMimeTypes.contains(mimeType)
     }
     
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Index Information")) {
-                    TextField("Index Name", text: $indexName)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                    
-                    DisclosureGroup("Advanced Options", isExpanded: $showAdvancedOptions) {
-                        Picker("Distance Metric", selection: $metric) {
-                            ForEach(availableMetrics, id: \.self) { metricName in
-                                Text(metricName.capitalized).tag(metricName)
-                            }
-                        }
-                        .id("metric-picker")  // Add stable ID to picker
-                        .pickerStyle(DefaultPickerStyle())
-                        
-                        Stepper("Dimension: \(dimension)", value: $dimension, in: 1...4096, step: 64)
-                        
-                        Text("Default for text-embedding-3-large is 3072")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Section(footer: Text("The index will be created with serverless configuration in AWS us-east-1 region.")) {
-                    Button(action: createIndex) {
-                        if isCreating {
-                            HStack {
-                                ProgressView()
-                                    .padding(.trailing, 5)
-                                Text("Creating Index...")
-                            }
-                            .frame(maxWidth: .infinity)
-                        } else {
-                            Text("Create Index")
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .disabled(indexName.isEmpty || isCreating)
-                }
-                
-                if let errorMessage = errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
-                    }
-                }
-            }
-            .navigationTitle("Create Index")
-            .navigationBarItems(trailing: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
-            .disabled(isCreating)
-        }
+    // Get API keys from secure storage
+    static func getOpenAIAPIKey() -> String {
+        // In a real app, this would retrieve from KeyChain
+        return openAIAPIKey
     }
     
-    private func createIndex() {
-        guard !indexName.isEmpty else { return }
-        
-        isCreating = true
-        errorMessage = nil
-        
-        Task {
-            do {
-                let success = try await apiManager.createPineconeIndex(
-                    name: indexName,
-                    dimension: dimension,
-                    metric: metric
-                )
-                
-                DispatchQueue.main.async {
-                    self.isCreating = false
-                    
-                    if success {
-                        self.onIndexCreated(self.indexName)
-                        self.presentationMode.wrappedValue.dismiss()
-                    } else {
-                        self.errorMessage = "Failed to create index. It might still be initializing. Please try again later."
-                    }
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.isCreating = false
-                    self.errorMessage = "Error creating index: \(error.localizedDescription)"
-                }
-            }
-        }
+    static func getPineconeAPIKey() -> String {
+        // In a real app, this would retrieve from KeyChain
+        return pineconeAPIKey
+    }
+    
+    // Save API keys to secure storage
+    static func saveOpenAIAPIKey(_ key: String) {
+        // In a real app, this would save to KeyChain
+        // For demonstration, we're just printing a confirmation
+        print("OpenAI API key saved")
+    }
+    
+    static func savePineconeAPIKey(_ key: String) {
+        // In a real app, this would save to KeyChain
+        // For demonstration, we're just printing a confirmation
+        print("Pinecone API key saved")
     }
 }

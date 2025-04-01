@@ -1,87 +1,81 @@
-// MARK: - Extensions.swift
 import Foundation
-import SwiftUI
+import Combine
 
-// Binding extension for optional values
-extension Binding {
-    func toUnwrapped<T>(defaultValue: T) -> Binding<T> where Value == Optional<T> {
-        Binding<T>(
-            get: { self.wrappedValue ?? defaultValue },
-            set: { self.wrappedValue = $0 }
-        )
-    }
-}
-
-// FileSize formatter
-extension Int64 {
-    func formattedFileSize() -> String {
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: self)
-    }
-}
-
-// Date formatter extensions
-extension Date {
-    func formattedString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: self)
+/// Centralized logging system for the app
+class Logger: ObservableObject { // Added ObservableObject conformance
+    static let shared = Logger()
+    
+    // Published log entries for UI updates
+    @Published var logEntries: [ProcessingLogEntry] = []
+    
+    // Maximum number of log entries to keep
+    private let maxLogEntries = 1000
+    
+    private init() {}
+    
+    /// Add a log entry with specified level and message
+    /// - Parameters:
+    ///   - level: Log level (info, warning, error, success)
+    ///   - message: Log message
+    ///   - context: Optional context information
+    func log(level: ProcessingLogEntry.LogLevel, message: String, context: String? = nil) {
+        let entry = ProcessingLogEntry(level: level, message: message, context: context)
+        
+        // Add to the log entries array
+        DispatchQueue.main.async {
+            self.logEntries.append(entry)
+            
+            // Trim the log if it exceeds the maximum size
+            if self.logEntries.count > self.maxLogEntries {
+                self.logEntries = Array(self.logEntries.dropFirst(self.logEntries.count - self.maxLogEntries))
+            }
+        }
+        
+        // Also print to console for debugging
+        let timestamp = ISO8601DateFormatter().string(from: entry.timestamp)
+        let contextInfo = context != nil ? " [\(context!)]" : ""
+        print("[\(timestamp)] [\(level.rawValue)]\(contextInfo): \(message)")
     }
     
-    func timeAgo() -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: self, relativeTo: Date())
-    }
-}
-
-// Color extensions
-extension Color {
-    static func dynamicColor(light: Color, dark: Color) -> Color {
-        #if os(iOS)
-        return Color(UIColor { traitCollection in
-            return traitCollection.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
-        })
-        #else
-        return light
-        #endif
-    }
-}
-
-// String extensions
-extension String {
-    func trimmingLeadingAndTrailingWhitespaces() -> String {
-        return self.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Clear all log entries
+    func clearLogs() {
+        DispatchQueue.main.async {
+            self.logEntries.removeAll()
+        }
     }
     
-    func truncated(to length: Int, trailing: String = "...") -> String {
-        return self.count > length ? self.prefix(length) + trailing : self
-    }
-}
-
-// View extension to hide keyboard
-extension View {
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    /// Export logs to a string
+    /// - Returns: String representation of logs
+    func exportLogs() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        
+        var logText = "SwiftRAG Logs - \(dateFormatter.string(from: Date()))\n\n"
+        
+        for entry in logEntries {
+            let timestamp = dateFormatter.string(from: entry.timestamp)
+            let contextInfo = entry.context != nil ? " [\(entry.context!)]" : ""
+            logText += "[\(timestamp)] [\(entry.level.rawValue)]\(contextInfo): \(entry.message)\n"
+        }
+        
+        return logText
     }
     
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
+    /// Filter logs by level
+    /// - Parameter level: Log level to filter by
+    /// - Returns: Filtered log entries
+    func filterByLevel(_ level: ProcessingLogEntry.LogLevel) -> [ProcessingLogEntry] {
+        return logEntries.filter { $0.level == level }
     }
-}
-
-// For custom corner radius on specific corners
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
     
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
+    /// Search logs for specific text
+    /// - Parameter searchText: Text to search for
+    /// - Returns: Matching log entries
+    func search(for searchText: String) -> [ProcessingLogEntry] {
+        let lowercaseSearchText = searchText.lowercased()
+        return logEntries.filter {
+            $0.message.lowercased().contains(lowercaseSearchText) ||
+            ($0.context?.lowercased().contains(lowercaseSearchText) ?? false)
+        }
     }
 }
-
-

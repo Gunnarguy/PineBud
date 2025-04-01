@@ -1,256 +1,227 @@
-// MARK: - IndexesView.swift
-import SwiftUI
+import Foundation
+import Combine
 
-struct IndexesView: View {
-    @EnvironmentObject var apiManager: APIManager
-    @EnvironmentObject var settingsManager: SettingsManager
+/// View model for the search functionality
+class SearchViewModel: ObservableObject {
+    // Dependencies
+    private let pineconeService: PineconeService
+    private let openAIService: OpenAIService
+    private let embeddingService: EmbeddingService
+    private let logger = Logger.shared
     
-    @State private var indexes: [String] = []
-    @State private var namespaces: [String] = []
-    @State private var isLoading = false
-    @State private var showCreateIndexSheet = false
-    @State private var showCreateNamespaceSheet = false
+    // Published properties for UI binding
+    @Published var searchQuery = ""
+    @Published var isSearching = false
+    @Published var searchResults: [SearchResultModel] = []
+    @Published var generatedAnswer: String = ""
+    @Published var selectedResults: [SearchResultModel] = []
+    @Published var errorMessage: String? = nil
+    @Published var pineconeIndexes: [String] = []
+    @Published var namespaces: [String] = []
+    @Published var selectedIndex: String? = nil
+    @Published var selectedNamespace: String? = nil
     
-    var body: some View {
-        VStack {
-            // Index and namespace selection
-            VStack(spacing: 16) {
-                // Index selector
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Active Index:")
-                        .font(.headline)
-                    
-                    Picker("Select Index", selection: $settingsManager.activeIndex.toUnwrapped(defaultValue: "")) {
-                        Text("No Index Selected").tag("")
-                        
-                        ForEach(indexes, id: \.self) { index in
-                            Text(index).tag(index)
-                        }
-                    }
-                    .id("index-picker-\(indexes.count)") // Force picker to recreate when indexes array changes
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: settingsManager.activeIndex) { oldValue, newValue in
-                        if let indexName = newValue, !indexName.isEmpty {
-                            settingsManager.setActiveIndex(indexName)
-                            loadNamespaces(for: indexName)
-                        }
-                    }
+    // Cancellables for managing subscriptions
+    private var cancellables = Set<AnyCancellable>()
+    
+    init(pineconeService: PineconeService, openAIService: OpenAIService, embeddingService: EmbeddingService) {
+        self.pineconeService = pineconeService
+        self.openAIService = openAIService
+        self.embeddingService = embeddingService
+    }
+    
+    /// Load available Pinecone indexes
+    func loadIndexes() async {
+        do {
+            let indexes = try await pineconeService.listIndexes()
+            await MainActor.run {
+                self.pineconeIndexes = indexes
+                if !indexes.isEmpty && self.selectedIndex == nil {
+                    self.selectedIndex = indexes[0]
                 }
-                .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(10)
-                
-                // Namespace selector
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Active Namespace:")
-                        .font(.headline)
-                    
-                    Picker("Select Namespace", selection: $settingsManager.activeNamespace.toUnwrapped(defaultValue: "")) {
-                        Text("Default Namespace").tag("")
-                        
-                        ForEach(namespaces, id: \.self) { namespace in
-                            Text(namespace).tag(namespace)
-                        }
-                    }
-                    .id("namespace-picker-\(namespaces.count)") // Force picker to recreate when namespaces array changes
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: settingsManager.activeNamespace) { oldValue, newValue in
-                        settingsManager.setActiveNamespace(newValue)
-                    }
-                    .disabled(settingsManager.activeIndex == nil || settingsManager.activeIndex?.isEmpty == true)
-                }
-                .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(10)
             }
-            .padding()
-            
-            Divider()
-            
-            // Index and namespace lists
-            if isLoading {
-                VStack {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .padding()
-                    
-                    Text("Loading...")
-                        .font(.headline)
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "Failed to load indexes: \(error.localizedDescription)"
+                self.logger.log(level: .error, message: "Failed to load indexes", context: error.localizedDescription)
+            }
+        }
+    }
+    
+    /// Set the current Pinecone index
+    /// - Parameter indexName: Name of the index to set
+    func setIndex(_ indexName: String) async {
+        do {
+            try await pineconeService.setCurrentIndex(indexName)
+            await loadNamespaces()
+            await MainActor.run {
+                self.selectedIndex = indexName
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "Failed to set index: \(error.localizedDescription)"
+                self.logger.log(level: .error, message: "Failed to set index", context: error.localizedDescription)
+            }
+        }
+    }
+    
+    /// Load available namespaces for the current index
+    func loadNamespaces() async {
+        guard selectedIndex != nil else {
+            await MainActor.run {
+                self.namespaces = []
+                self.selectedNamespace = nil
+            }
+            return
+        }
+        
+        do {
+            let namespaces = try await pineconeService.listNamespaces()
+            await MainActor.run {
+                self.namespaces = namespaces
+                if self.selectedNamespace == nil || !namespaces.contains(self.selectedNamespace!) {
+                    self.selectedNamespace = namespaces.first
                 }
-                .frame(maxHeight: .infinity)
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "Failed to load namespaces: \(error.localizedDescription)"
+                self.logger.log(level: .error, message: "Failed to load namespaces", context: error.localizedDescription)
+            }
+        }
+    }
+    
+    /// Set the current namespace
+    /// - Parameter namespace: Namespace to set
+    func setNamespace(_ namespace: String?) {
+        self.selectedNamespace = namespace
+    }
+    
+    /// Toggle selection of a search result
+    /// - Parameter result: The search result to toggle
+    func toggleResultSelection(_ result: SearchResultModel) {
+        if let index = searchResults.firstIndex(where: { $0.id == result.id }) {
+            searchResults[index].isSelected.toggle()
+            
+            // Update the selected results array
+            if searchResults[index].isSelected {
+                selectedResults.append(searchResults[index])
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Indexes section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Available Indexes")
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            if indexes.isEmpty {
-                                Text("No indexes found")
-                                    .foregroundColor(.secondary)
-                                    .padding()
-                            } else {
-                                ForEach(indexes, id: \.self) { index in
-                                    IndexRow(
-                                        name: index,
-                                        isActive: settingsManager.activeIndex == index
-                                    ) {
-                                        settingsManager.setActiveIndex(index)
-                                        loadNamespaces(for: index)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // Namespaces section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Available Namespaces")
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            if namespaces.isEmpty {
-                                Text(settingsManager.activeIndex == nil ? "Select an index first" : "No namespaces found")
-                                    .foregroundColor(.secondary)
-                                    .padding()
-                            } else {
-                                NamespaceRow(
-                                    name: "Default Namespace",
-                                    isActive: settingsManager.activeNamespace == nil || settingsManager.activeNamespace?.isEmpty == true
-                                ) {
-                                    settingsManager.setActiveNamespace(nil)
-                                }
-                                
-                                ForEach(namespaces, id: \.self) { namespace in
-                                    NamespaceRow(
-                                        name: namespace,
-                                        isActive: settingsManager.activeNamespace == namespace
-                                    ) {
-                                        settingsManager.setActiveNamespace(namespace)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.top)
-                }
+                selectedResults.removeAll(where: { $0.id == result.id })
+            }
+        }
+    }
+    
+    /// Perform a search with the current query
+    func performSearch() async {
+        guard !searchQuery.isEmpty else {
+            return
+        }
+        
+        await MainActor.run {
+            self.isSearching = true
+            self.searchResults = []
+            self.generatedAnswer = ""
+            self.selectedResults = []
+            self.errorMessage = nil
+        }
+        
+        do {
+            // Generate embedding for query
+            let queryEmbedding = try await embeddingService.generateQueryEmbedding(for: searchQuery)
+            
+            // Search Pinecone
+            let queryResults = try await pineconeService.query(
+                vector: queryEmbedding,
+                topK: 20,
+                namespace: selectedNamespace
+            )
+            
+            // Map results to search result models
+            let results = queryResults.matches.map { match in
+                SearchResultModel(
+                    content: match.metadata?["text"] ?? "No content",
+                    sourceDocument: match.metadata?["source"] ?? "Unknown source",
+                    score: match.score,
+                    metadata: match.metadata ?? [:]
+                )
             }
             
-            // Action buttons
-            HStack(spacing: 16) {
-                Button(action: {
-                    showCreateIndexSheet = true
-                }) {
-                    Label("Create Index", systemImage: "plus.square")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isLoading)
+            // Generate answer using OpenAI
+            let context = results.prefix(5).map { result in
+                "Source: \(result.sourceDocument)\n\(result.content)"
+            }.joined(separator: "\n\n")
+            
+            let answer = try await openAIService.generateCompletion(
+                systemPrompt: "Answer the user's question using ONLY the information provided in the context. If the answer isn't in the context, say you don't have enough information.",
+                userMessage: searchQuery,
+                context: context
+            )
+            
+            await MainActor.run {
+                self.searchResults = results
+                self.generatedAnswer = answer
+                self.isSearching = false
                 
-                Button(action: {
-                    showCreateNamespaceSheet = true
-                }) {
-                    Label("Create Namespace", systemImage: "plus.rectangle.on.folder")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .disabled(isLoading || settingsManager.activeIndex == nil || settingsManager.activeIndex?.isEmpty == true)
+                self.logger.log(level: .success, message: "Search completed", context: "Found \(results.count) results")
             }
-            .padding()
-        }
-        .navigationTitle("Indexes")
-        .onAppear {
-            loadIndexes()
-        }
-        .sheet(isPresented: $showCreateIndexSheet) {
-            CreateIndexView(onIndexCreated: { indexName in
-                loadIndexes()
-                if let name = indexName {
-                    settingsManager.setActiveIndex(name)
-                    loadNamespaces(for: name)
-                }
-            })
-        }
-        .sheet(isPresented: $showCreateNamespaceSheet) {
-            CreateNamespaceView(onNamespaceCreated: { namespaceName in
-                if let indexName = settingsManager.activeIndex, !indexName.isEmpty {
-                    loadNamespaces(for: indexName)
-                }
-                if let name = namespaceName {
-                    settingsManager.setActiveNamespace(name)
-                }
-            })
-        }
-        .refreshable {
-            loadIndexes()
-        }
-    }
-    
-    private func loadIndexes() {
-        isLoading = true
-        
-        Task {
-            do {
-                let loadedIndexes = try await apiManager.listPineconeIndexes()
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "Search failed: \(error.localizedDescription)"
+                self.isSearching = false
                 
-                DispatchQueue.main.async {
-                    self.indexes = loadedIndexes
-                    self.isLoading = false
-                    
-                    // Validate active index after loading
-                    if let activeIndex = settingsManager.activeIndex, !activeIndex.isEmpty {
-                        if !loadedIndexes.contains(activeIndex) {
-                            // The active index no longer exists, reset selection
-                            self.settingsManager.activeIndex = nil
-                            self.namespaces = []
-                        } else {
-                            // Active index is valid, load its namespaces
-                            self.loadNamespaces(for: activeIndex)
-                        }
-                    }
-                }
-            } catch {
-                print("Error loading indexes: \(error.localizedDescription)")
-                
-                DispatchQueue.main.async {
-                    self.indexes = []
-                    self.isLoading = false
-                    apiManager.currentError = APIError(message: "Error loading indexes: \(error.localizedDescription)")
-                }
+                self.logger.log(level: .error, message: "Search failed", context: error.localizedDescription)
             }
         }
     }
     
-    private func loadNamespaces(for indexName: String) {
-        isLoading = true
+    /// Clear current search results
+    func clearSearch() {
+        searchQuery = ""
+        searchResults = []
+        generatedAnswer = ""
+        selectedResults = []
+        errorMessage = nil
+    }
+    
+    /// Generate an answer based on selected results
+    func generateAnswerFromSelected() async {
+        guard !selectedResults.isEmpty, !searchQuery.isEmpty else {
+            await MainActor.run {
+                self.errorMessage = "Please select at least one result and enter a query"
+            }
+            return
+        }
         
-        Task {
-            do {
-                let loadedNamespaces = try await apiManager.getNamespaces(indexName: indexName)
+        await MainActor.run {
+            self.isSearching = true
+            self.generatedAnswer = ""
+        }
+        
+        do {
+            // Use only selected results for context
+            let context = selectedResults.map { result in
+                "Source: \(result.sourceDocument)\n\(result.content)"
+            }.joined(separator: "\n\n")
+            
+            let answer = try await openAIService.generateCompletion(
+                systemPrompt: "Answer the user's question using ONLY the information provided in the context. If the answer isn't in the context, say you don't have enough information.",
+                userMessage: searchQuery,
+                context: context
+            )
+            
+            await MainActor.run {
+                self.generatedAnswer = answer
+                self.isSearching = false
                 
-                DispatchQueue.main.async {
-                    self.namespaces = loadedNamespaces
-                    self.isLoading = false
-                    
-                    // Validate active namespace after loading
-                    if let activeNamespace = settingsManager.activeNamespace, !activeNamespace.isEmpty {
-                        if !loadedNamespaces.contains(activeNamespace) {
-                            // The active namespace no longer exists, reset selection
-                            self.settingsManager.activeNamespace = nil
-                        }
-                    }
-                }
-            } catch {
-                print("Error loading namespaces: \(error.localizedDescription)")
+                self.logger.log(level: .success, message: "Answer generated from selected results", context: "Using \(selectedResults.count) results")
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "Failed to generate answer: \(error.localizedDescription)"
+                self.isSearching = false
                 
-                DispatchQueue.main.async {
-                    self.namespaces = []
-                    self.isLoading = false
-                    apiManager.currentError = APIError(message: "Error loading namespaces: \(error.localizedDescription)")
-                }
+                self.logger.log(level: .error, message: "Failed to generate answer", context: error.localizedDescription)
             }
         }
     }
