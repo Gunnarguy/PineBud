@@ -29,7 +29,7 @@ class PineconeService {
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue(apiKey, forHTTPHeaderField: "Api-Key")
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -39,9 +39,10 @@ class PineconeService {
             }
             
             if httpResponse.statusCode != 200 {
-                let errorMessage = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
-                logger.log(level: .error, message: "Pinecone API error: \(errorMessage?.message ?? "Unknown error")")
-                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: errorMessage?.message)
+                let errorResponse = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
+                let message = errorResponse?.message ?? String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.log(level: .error, message: "Pinecone API error (getIndexHost): Status \(httpResponse.statusCode), Message: \(message)")
+                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: message)
             }
             
             let indexInfo = try JSONDecoder().decode(IndexDescribeResponse.self, from: data)
@@ -61,7 +62,7 @@ class PineconeService {
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue(apiKey, forHTTPHeaderField: "Api-Key")
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -71,16 +72,17 @@ class PineconeService {
             }
             
             if httpResponse.statusCode != 200 {
-                let errorMessage = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
-                logger.log(level: .error, message: "Pinecone API error: \(errorMessage?.message ?? "Unknown error")")
-                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: errorMessage?.message)
+                let errorResponse = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
+                let message = errorResponse?.message ?? String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.log(level: .error, message: "Pinecone API error (listIndexes): Status \(httpResponse.statusCode), Message: \(message)")
+                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: message)
             }
             
             let indexList = try JSONDecoder().decode(IndexListResponse.self, from: data)
             return indexList.indexes.map { $0.name }
         } catch {
-            logger.log(level: .error, message: "Failed to list indexes: \(error.localizedDescription)")
-            throw PineconeError.requestFailed(statusCode: 0, message: error.localizedDescription)
+            logger.log(level: .error, message: "Failed to list indexes. Error: \(error)")
+            throw PineconeError.requestFailed(statusCode: 0, message: "Failed to list indexes: \(error.localizedDescription)")
         }
     }
     
@@ -111,7 +113,7 @@ class PineconeService {
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue(apiKey, forHTTPHeaderField: "Api-Key")
         request.httpBody = jsonData
         
         do {
@@ -122,9 +124,10 @@ class PineconeService {
             }
             
             if httpResponse.statusCode != 201 && httpResponse.statusCode != 200 {
-                let errorMessage = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
-                logger.log(level: .error, message: "Pinecone API error: \(errorMessage?.message ?? "Unknown error")")
-                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: errorMessage?.message)
+                let errorResponse = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
+                let message = errorResponse?.message ?? String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.log(level: .error, message: "Pinecone API error (createIndex): Status \(httpResponse.statusCode), Message: \(message)")
+                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: message)
             }
             
             return try JSONDecoder().decode(IndexCreateResponse.self, from: data)
@@ -143,7 +146,7 @@ class PineconeService {
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue(apiKey, forHTTPHeaderField: "Api-Key")
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -153,7 +156,10 @@ class PineconeService {
             }
             
             if httpResponse.statusCode != 200 {
-                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: "Index not found")
+                let errorResponse = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
+                let message = errorResponse?.message ?? String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.log(level: .error, message: "Pinecone API error (isIndexReady): Status \(httpResponse.statusCode), Message: \(message)")
+                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: message)
             }
             
             let indexInfo = try JSONDecoder().decode(IndexDescribeResponse.self, from: data)
@@ -193,7 +199,7 @@ class PineconeService {
     /// List namespaces for the current index
     /// - Returns: Array of namespace names
     func listNamespaces() async throws -> [String] {
-        guard let indexHost = indexHost, let _ = currentIndex else { // Replaced currentIndex with _
+        guard let indexHost = indexHost, let _ = currentIndex else {
             throw PineconeError.noIndexSelected
         }
         
@@ -202,7 +208,7 @@ class PineconeService {
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "GET"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue(apiKey, forHTTPHeaderField: "Api-Key")
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -212,9 +218,10 @@ class PineconeService {
             }
             
             if httpResponse.statusCode != 200 {
-                let errorMessage = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
-                logger.log(level: .error, message: "Pinecone API error: \(errorMessage?.message ?? "Unknown error")")
-                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: errorMessage?.message)
+                let errorResponse = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
+                let message = errorResponse?.message ?? String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.log(level: .error, message: "Pinecone API error (listNamespaces): Status \(httpResponse.statusCode), Message: \(message)")
+                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: message)
             }
             
             let indexStats = try JSONDecoder().decode(IndexStatsResponse.self, from: data)
@@ -258,7 +265,7 @@ class PineconeService {
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue(apiKey, forHTTPHeaderField: "Api-Key")
         request.httpBody = jsonData
         
         do {
@@ -269,9 +276,10 @@ class PineconeService {
             }
             
             if httpResponse.statusCode != 200 {
-                let errorMessage = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
-                logger.log(level: .error, message: "Pinecone API error: \(errorMessage?.message ?? "Unknown error")")
-                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: errorMessage?.message)
+                let errorResponse = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
+                let message = errorResponse?.message ?? String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.log(level: .error, message: "Pinecone API error (upsertVectors): Status \(httpResponse.statusCode), Message: \(message)")
+                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: message)
             }
             
             return try JSONDecoder().decode(UpsertResponse.self, from: data)
@@ -311,7 +319,7 @@ class PineconeService {
         var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("Api-Key \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue(apiKey, forHTTPHeaderField: "Api-Key")
         request.httpBody = jsonData
         
         do {
@@ -322,9 +330,10 @@ class PineconeService {
             }
             
             if httpResponse.statusCode != 200 {
-                let errorMessage = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
-                logger.log(level: .error, message: "Pinecone API error: \(errorMessage?.message ?? "Unknown error")")
-                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: errorMessage?.message)
+                let errorResponse = try? JSONDecoder().decode(PineconeErrorResponse.self, from: data)
+                let message = errorResponse?.message ?? String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.log(level: .error, message: "Pinecone API error (query): Status \(httpResponse.statusCode), Message: \(message)")
+                throw PineconeError.requestFailed(statusCode: httpResponse.statusCode, message: message)
             }
             
             return try JSONDecoder().decode(QueryResponse.self, from: data)

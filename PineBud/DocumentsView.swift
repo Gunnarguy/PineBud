@@ -278,7 +278,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         // Base list of supported types
-        var supportedTypes: [UTType] = [
+        let supportedTypes: [UTType] = [ // Changed var to let
             .pdf,
             .plainText,
             .image,
@@ -328,9 +328,15 @@ extension Binding where Value == String? {
 }
 
 #Preview {
+    documentsPreview()
+}
+
+/// Helper function to create preview for DocumentsView
+private func documentsPreview() -> some View {
     let fileProcessorService = FileProcessorService()
     let textProcessorService = TextProcessorService()
     let openAIService = OpenAIService(apiKey: "preview-key")
+    // Updated PineconeService initialization for preview
     let pineconeService = PineconeService(apiKey: "preview-key")
     let embeddingService = EmbeddingService(openAIService: openAIService)
     

@@ -10,6 +10,7 @@ struct Configuration {
     
     // Pinecone Configuration
     static let pineconeAPIKey = ProcessInfo.processInfo.environment["PINECONE_API_KEY"] ?? ""
+    static let pineconeProjectId = ProcessInfo.processInfo.environment["PINECONE_PROJECT_ID"] ?? "" // Add this line
     static let pineconeEnvironment = "us-east-1" // Default region
     
     // Document Processing Settings
@@ -57,6 +58,11 @@ struct Configuration {
         return pineconeAPIKey
     }
     
+    static func getPineconeProjectId() -> String {
+        // In a real app, this would retrieve from KeyChain
+        return pineconeProjectId
+    }
+    
     // Save API keys to secure storage
     static func saveOpenAIAPIKey(_ key: String) {
         // In a real app, this would save to KeyChain
@@ -68,5 +74,11 @@ struct Configuration {
         // In a real app, this would save to KeyChain
         // For demonstration, we're just printing a confirmation
         print("Pinecone API key saved")
+    }
+    
+    static func savePineconeProjectId(_ id: String) {
+        // In a real app, this would save to KeyChain
+        // For demonstration, we're just printing a confirmation
+        print("Pinecone project ID saved")
     }
 }

@@ -69,7 +69,10 @@ struct SwiftRAGApp: App {
     private func initializeServices() {
         // Create services with API keys
         let openAIService = OpenAIService(apiKey: settingsViewModel.openAIAPIKey)
+        
+        // Create Pinecone service with just the API key
         let pineconeService = PineconeService(apiKey: settingsViewModel.pineconeAPIKey)
+        
         let embeddingService = EmbeddingService(openAIService: openAIService)
         
         // Create view models with dependencies
@@ -223,7 +226,7 @@ struct WelcomeView: View {
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
-                .disabled(currentStep == 1 && (settingsViewModel.openAIAPIKey.isEmpty || settingsViewModel.pineconeAPIKey.isEmpty))
+                .disabled(currentStep == 1 && (settingsViewModel.openAIAPIKey.isEmpty || settingsViewModel.pineconeAPIKey.isEmpty || settingsViewModel.pineconeProjectId.isEmpty))
             }
             .padding()
         }
@@ -285,23 +288,39 @@ struct WelcomeView: View {
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                     
-                    Text("Get an API key at openai.com")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                Text("Get an API key at openai.com")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
                 
                 VStack(alignment: .leading) {
-                    Text("Pinecone API Key")
+                    Text("Pinecone API Key (starts with 'pcsk_')")
                         .font(.headline)
                     
-                    SecureField("...", text: $settingsViewModel.pineconeAPIKey)
+                    SecureField("pcsk_...", text: $settingsViewModel.pineconeAPIKey)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(settingsViewModel.pineconeAPIKey.isEmpty || !settingsViewModel.pineconeAPIKey.hasPrefix("pcsk_") ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1)
+                        )
                     
-                    Text("Get an API key at pinecone.io")
+                    Text("Pinecone Project ID")
+                        .font(.headline)
+                    
+                    TextField("e.g., 1234abcd-ef56-7890-gh12-345678ijklmn", text: $settingsViewModel.pineconeProjectId)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(settingsViewModel.pineconeProjectId.isEmpty ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1)
+                        )
+                    
+                    Text("IMPORTANT: Pinecone requires both an API Key (starts with 'pcsk_') AND Project ID for JWT authentication. Find both in the Pinecone console under API Keys.")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor((settingsViewModel.pineconeProjectId.isEmpty || settingsViewModel.pineconeAPIKey.isEmpty || !settingsViewModel.pineconeAPIKey.hasPrefix("pcsk_")) ? .red : .secondary)
                 }
             }
             .padding(.top, 20)

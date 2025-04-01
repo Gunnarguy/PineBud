@@ -18,6 +18,14 @@ struct SettingsView: View {
                 SecureField("Pinecone API Key", text: $viewModel.pineconeAPIKey)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
+                
+                SecureField("Pinecone Project ID", text: $viewModel.pineconeProjectId)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                
+                Text("The Pinecone Project ID is required for API access.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             
             // Chunking Configuration
@@ -151,6 +159,7 @@ struct IdentifiableError: Identifiable {
     let viewModel = SettingsViewModel()
     viewModel.openAIAPIKey = "sk-••••••••••••••••••••••••••••••••"
     viewModel.pineconeAPIKey = "••••••••••••••••••••••••••••••••"
+    viewModel.pineconeProjectId = "••••••••••••••••••••"
     
     return NavigationView {
         SettingsView(viewModel: viewModel)

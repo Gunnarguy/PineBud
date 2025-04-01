@@ -8,6 +8,7 @@ class SettingsViewModel: ObservableObject {
     // API Keys
     @Published var openAIAPIKey: String = ""
     @Published var pineconeAPIKey: String = ""
+    @Published var pineconeProjectId: String = "" // Add this line
     
     // Configuration settings
     @Published var defaultChunkSize: Int = Configuration.defaultChunkSize
@@ -33,6 +34,7 @@ class SettingsViewModel: ObservableObject {
     func loadAPIKeys() {
         openAIAPIKey = UserDefaults.standard.string(forKey: "openAIAPIKey") ?? ""
         pineconeAPIKey = UserDefaults.standard.string(forKey: "pineconeAPIKey") ?? ""
+        pineconeProjectId = UserDefaults.standard.string(forKey: "pineconeProjectId") ?? "" // Add this line
         
         // In a production app, this would use KeyChain instead of UserDefaults
         // This is a simplified implementation for demo purposes
@@ -42,6 +44,7 @@ class SettingsViewModel: ObservableObject {
     func saveAPIKeys() {
         UserDefaults.standard.set(openAIAPIKey, forKey: "openAIAPIKey")
         UserDefaults.standard.set(pineconeAPIKey, forKey: "pineconeAPIKey")
+        UserDefaults.standard.set(pineconeProjectId, forKey: "pineconeProjectId") // Add this line
         
         // In a production app, this would use KeyChain instead of UserDefaults
         logger.log(level: .info, message: "API keys saved")
@@ -94,8 +97,8 @@ class SettingsViewModel: ObservableObject {
     /// Check if the configuration is valid
     func isConfigurationValid() -> Bool {
         // Check API keys
-        if openAIAPIKey.isEmpty || pineconeAPIKey.isEmpty {
-            errorMessage = "API keys are required"
+        if openAIAPIKey.isEmpty || pineconeAPIKey.isEmpty || pineconeProjectId.isEmpty { // Updated check
+            errorMessage = "API keys and Project ID are required"
             return false
         }
         

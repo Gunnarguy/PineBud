@@ -1,0 +1,8 @@
+{
+    "cline.modelSettings.o3Mini.reasoningEffort": "high",
+    "github.copilot.chat.codesearch.enabled": true,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "github.copilot.chat.edits.temporalContext.enabled": true,
+    "github.copilot.chat.newWorkspaceCreation.enabled": true,
+    "github.copilot.chat.search.semanticTextResults": true
+}

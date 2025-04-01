@@ -262,7 +262,13 @@ extension View {
 }
 
 #Preview {
+    searchViewPreview()
+}
+
+/// Helper function to create preview for SearchView
+private func searchViewPreview() -> some View {
     let openAIService = OpenAIService(apiKey: "preview-key")
+    // Updated PineconeService initialization to match its current definition
     let pineconeService = PineconeService(apiKey: "preview-key")
     let embeddingService = EmbeddingService(openAIService: openAIService)
     

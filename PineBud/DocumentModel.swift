@@ -194,6 +194,7 @@ struct ProcessingLogEntry: Identifiable {
     }
     
     enum LogLevel: String, CaseIterable {
+        case debug = "DEBUG"
         case info = "INFO"
         case warning = "WARNING"
         case error = "ERROR"
@@ -201,6 +202,7 @@ struct ProcessingLogEntry: Identifiable {
         
         var color: Color {
             switch self {
+            case .debug: return .gray
             case .info: return .blue
             case .warning: return .orange
             case .error: return .red

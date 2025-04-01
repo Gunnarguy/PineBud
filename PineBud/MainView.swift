@@ -91,6 +91,11 @@ struct MainView: View {
 }
 
 #Preview {
+    mainViewPreview()
+}
+
+/// Helper function to create preview for MainView
+private func mainViewPreview() -> some View {
     // Create services for preview
     let fileProcessorService = FileProcessorService()
     let textProcessorService = TextProcessorService()
@@ -99,8 +104,10 @@ struct MainView: View {
     // Initialize with dummy API keys for preview
     settingsViewModel.openAIAPIKey = "preview-key"
     settingsViewModel.pineconeAPIKey = "preview-key"
+    settingsViewModel.pineconeProjectId = "preview-project"
     
     let openAIService = OpenAIService(apiKey: settingsViewModel.openAIAPIKey)
+    // Updated PineconeService initialization to match its current definition
     let pineconeService = PineconeService(apiKey: settingsViewModel.pineconeAPIKey)
     let embeddingService = EmbeddingService(openAIService: openAIService)
     
